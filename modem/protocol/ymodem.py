@@ -38,11 +38,9 @@ class YMODEM(XMODEM):
         log.debug("len(filenames)=" + str(len(filenames)))
         if not filenames:
             log.debug(error.DEBUG_START_FILENAME)
-            XMODEM.set_progress(self, 1)
             return True
         if len(filenames) == 0:
             log.debug(error.DEBUG_START_FILENAME + " True")
-            XMODEM.set_progress(self, 1)
             return False
 
 
@@ -55,7 +53,6 @@ class YMODEM(XMODEM):
         else:
             log.error(error.ABORT_PROTOCOL)
             # Already aborted
-            XMODEM.set_progress(self, 1)
             return False
 
         for filename in filenames:
@@ -81,7 +78,6 @@ class YMODEM(XMODEM):
                     sequence, data, packet_size, crc_mode,
                     crc, error_count, retry, timeout):
                 self.abort(timeout=timeout)
-                XMODEM.set_progress(self, 1)
                 return False
             log.debug(error.DEBUG_FILENAME_SENT.format(filename))
 
@@ -89,7 +85,6 @@ class YMODEM(XMODEM):
             error_count = 0
             if not self._wait_recv(error_count, timeout):
                 self.abort(timeout)
-                XMODEM.set_progress(self, 1)
                 return False
 
             filedesc = open(filename, 'rb')
@@ -101,7 +96,6 @@ class YMODEM(XMODEM):
 
             if not self._send_stream(filedesc, crc_mode, retry, timeout, filesize):
                 log.error(error.ABORT_SEND_STREAM)
-                XMODEM.set_progress(self, 1)
                 return False
             log.debug(error.DEBUG_FILE_SENT.format(filename))
 
@@ -116,7 +110,6 @@ class YMODEM(XMODEM):
             if not self._wait_recv(error_count, timeout):
                 log.error(error.ABORT_INIT_NEXT)
                 # Already aborted
-                XMODEM.set_progress(self, 1)
                 return False
 
         # End of batch transmission, send NULL file name
@@ -132,11 +125,9 @@ class YMODEM(XMODEM):
                 error_count, retry, timeout):
             log.error(error.ABORT_SEND_PACKET)
             # Already aborted
-            XMODEM.set_progress(self, 1)
             return False
 
         # All went fine
-        XMODEM.set_progress(self, 1)
         return True
 
     def send_threaded(self, pattern, retry=16, timeout=60):
@@ -151,6 +142,9 @@ class YMODEM(XMODEM):
         return
 
     def get_progress(self):
+        if not self.thread.is_alive():
+            XMODEM.set_progress(self, 1)
+
         return XMODEM.get_progress(self)
 
     def recv(self, basedir, crc_mode=1, retry=16, timeout=60, delay=1):
