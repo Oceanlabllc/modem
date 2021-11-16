@@ -40,7 +40,7 @@ class YMODEM(XMODEM):
             log.debug(error.DEBUG_START_FILENAME)
             return True
         if len(filenames) == 0:
-            log.debug(error.DEBUG_START_FILENAME + " True")
+            log.debug(error.DEBUG_START_FILENAME)
             return False
 
 
