@@ -21,7 +21,7 @@ class YMODEM(XMODEM):
         self.thread = None
         return
 
-    def send(self, pattern, retry=16, timeout=60):
+    def send(self, pattern, retry=16, timeout=60, remote_path=""):
         '''
         Send one or more files via the YMODEM protocol.
 
@@ -60,7 +60,7 @@ class YMODEM(XMODEM):
             sequence = 0
             error_count = 0
             # REQUIREMENT 1,1a,1b,1c,1d
-            data = ''.join([os.path.basename(filename), '\x00', str(os.path.getsize(filename))])
+            data = ''.join([remote_path, os.path.basename(filename), '\x00', str(os.path.getsize(filename))])
 
             log.debug(error.DEBUG_START_FILENAME % (filename,))
             # Pick a suitable packet length for the filename
@@ -130,9 +130,9 @@ class YMODEM(XMODEM):
         # All went fine
         return True
 
-    def send_threaded(self, pattern, retry=16, timeout=60):
+    def send_threaded(self, pattern, retry=16, timeout=60, remote_path=""):
         if self.thread == None:
-            self.thread = Thread(target=self.send, args=(pattern, retry, timeout,))
+            self.thread = Thread(target=self.send, args=(pattern, retry, timeout, remote_path,))
             self.thread.daemon = True
             self.thread.start()
         return
