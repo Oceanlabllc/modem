@@ -207,7 +207,8 @@ class XMODEM(Modem):
         '''
 
         # Get packet size for current protocol
-        packet_size = const.PACKET_SIZE.get(self.protocol, 128)
+        protocol_packet_size = const.PACKET_SIZE.get(self.protocol, 128)
+        packet_size = protocol_packet_size
 
         # ASSUME THAT I'VE ALREADY RECEIVED THE INITIAL <CRC> OR <NAK>
         # SO START DIRECTLY WITH STREAM TRANSMISSION
@@ -223,7 +224,7 @@ class XMODEM(Modem):
 
             # Select optimal packet size when using YMODEM
             if self.protocol == const.PROTOCOL_YMODEM:
-                packet_size = (len(data) <= 128) and 128 or 1024
+                packet_size = (len(data) <= protocol_packet_size) and 128 or protocol_packet_size
 
             # Align the packet
             data = data.ljust(packet_size, b'\x00')
