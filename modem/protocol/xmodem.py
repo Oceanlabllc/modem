@@ -23,6 +23,26 @@ class XMODEM(Modem):
     # Protocol identifier
     protocol = const.PROTOCOL_XMODEM
 
+    def __init__(self, getc, putc):
+        Modem.__init__(self, getc, putc)
+        self.progress = 0
+        self.print_progress = True
+        return
+
+    def get_progress(self):
+        return self.progress
+
+    def set_progress(self, progress):
+        self.progress = progress
+        return
+
+    def get_print_progress(self):
+        return self.print_progress
+
+    def set_print_progress(self, print_progress):
+        self.print_progress = print_progress
+        return
+
     def abort(self, count=2, timeout=60):
         '''
         Send an abort sequence using CAN bytes.
@@ -194,7 +214,8 @@ class XMODEM(Modem):
         '''
 
         # Get packet size for current protocol
-        packet_size = const.PACKET_SIZE.get(self.protocol, 128)
+        protocol_packet_size = const.PACKET_SIZE.get(self.protocol, 128)
+        packet_size = protocol_packet_size
 
         # ASSUME THAT I'VE ALREADY RECEIVED THE INITIAL <CRC> OR <NAK>
         # SO START DIRECTLY WITH STREAM TRANSMISSION
@@ -210,14 +231,14 @@ class XMODEM(Modem):
 
             # Select optimal packet size when using YMODEM
             if self.protocol == const.PROTOCOL_YMODEM:
-                packet_size = (len(data) <= 128) and 128 or 1024
+                packet_size = (len(data) <= protocol_packet_size) and 128 or protocol_packet_size
 
             # Align the packet
             data = data.ljust(packet_size, b'\x00')
 
             # Calculate CRC or checksum
-            crc = crc_mode and self.calc_crc16(data) or \
-                self.calc_checksum(data)
+            if crc_mode == 1: crc = self.calc_crc16(data)
+            else: crc = self.calc_checksum(data)
 
             # SENDS PACKET WITH CRC
             if not self._send_packet(
@@ -230,14 +251,14 @@ class XMODEM(Modem):
             sequence = (sequence + 1) % 0x100
             if filesize > 0:
                 total_sent += packet_size
-                progress = total_sent/filesize
-                remain = (filesize - total_sent)/filesize
-                print(error.DEBUG_SEND_PROGRESS.format(
-                        int(50 * progress) * '=',
-                        progress * 100,
-                        int(50 * remain) * ' ',
-                    ), end='\r'
-                )
+                self.progress = total_sent/filesize
+                if self.print_progress:
+                    remain = 1.0 - self.progress
+                    print(error.DEBUG_SEND_PROGRESS.format(
+                                int(50 * self.progress) * '=',
+                                self.progress * 100,
+                                int(50 * remain) * ' ',
+                            ), end='\r')
 
         # STREAM FINISHED, SEND EOT
         log.debug(error.DEBUG_SEND_EOT)

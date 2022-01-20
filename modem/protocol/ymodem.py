@@ -1,6 +1,7 @@
 import glob
 import os
 import time
+from threading import Thread
 from modem import const
 from modem.tools import log
 from modem.protocol.xmodem import XMODEM
@@ -15,7 +16,12 @@ class YMODEM(XMODEM):
 
     protocol = const.PROTOCOL_YMODEM
 
-    def send(self, pattern, retry=3, timeout=60):
+    def __init__(self, getc, putc):
+        XMODEM.__init__(self, getc, putc)
+        self.thread = None
+        return
+
+    def send(self, pattern, retry=16, timeout=60, remote_path=""):
         '''
         Send one or more files via the YMODEM protocol.
 
@@ -28,8 +34,15 @@ class YMODEM(XMODEM):
 
         # Get a list of files to send
         filenames = glob.glob(pattern)
+        log.debug("filenames=" + str(filenames))
+        log.debug("len(filenames)=" + str(len(filenames)))
         if not filenames:
+            log.debug(error.DEBUG_START_FILENAME)
             return True
+        if len(filenames) == 0:
+            log.debug(error.DEBUG_START_FILENAME)
+            return False
+
 
         # initialize protocol
         error_count = 0
@@ -47,7 +60,8 @@ class YMODEM(XMODEM):
             sequence = 0
             error_count = 0
             # REQUIREMENT 1,1a,1b,1c,1d
-            data = ''.join([os.path.basename(filename), '\x00'])
+            data = ''.join([remote_path, os.path.basename(str(filename)), '\x00',
+                            str(os.path.getsize(filename)),'\x00'])
 
             log.debug(error.DEBUG_START_FILENAME % (filename,))
             # Pick a suitable packet length for the filename
@@ -117,6 +131,23 @@ class YMODEM(XMODEM):
 
         # All went fine
         return True
+
+    def send_threaded(self, pattern, retry=16, timeout=60, remote_path=""):
+        if self.thread == None:
+            self.thread = Thread(target=self.send, args=(pattern, retry, timeout, remote_path,))
+            self.thread.daemon = True
+            self.thread.start()
+        return
+
+    def send_join(self):
+        self.thread.join()
+        return
+
+    def get_progress(self):
+        if not self.thread.is_alive():
+            XMODEM.set_progress(self, 1)
+
+        return XMODEM.get_progress(self)
 
     def recv(self, basedir, crc_mode=1, retry=3, timeout=60, delay=1):
         '''
