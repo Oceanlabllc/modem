@@ -143,9 +143,10 @@ class YMODEM(XMODEM):
 
     def get_progress(self):
         if not self.thread.is_alive():
-            XMODEM.set_progress(self, 1)
+            XMODEM.set_progress(self, -1)
 
         return XMODEM.get_progress(self)
+
 
     def recv(self, basedir, crc_mode=1, retry=16, timeout=60, delay=1):
         '''
